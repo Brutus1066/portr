@@ -68,15 +68,15 @@ fn kill_windows(pid: u32, _force: bool) -> Result<(), PortrError> {
 }
 
 /// Check if the current user has permission to kill a process
-pub fn can_kill(_pid: u32) -> bool {
+pub fn can_kill(pid: u32) -> bool {
     #[cfg(unix)]
     {
-        use nix::sys::signal::{kill, Signal};
+        use nix::sys::signal::kill;
         use nix::unistd::Pid;
 
         // Signal 0 checks if we can send signals without actually sending one
         let pid = Pid::from_raw(pid as i32);
-        kill(pid, Signal::from(0)).is_ok()
+        kill(pid, None).is_ok()
     }
 
     #[cfg(windows)]

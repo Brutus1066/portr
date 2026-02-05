@@ -382,6 +382,7 @@ fn get_network_connections() -> Result<Vec<NetConnection>, PortrError> {
 }
 
 /// Parse Windows address format (e.g., "0.0.0.0:3000" or "[::]:3000")
+#[cfg(target_os = "windows")]
 fn parse_address(addr: &str) -> Option<(String, u16)> {
     // Handle IPv6 with brackets
     if addr.starts_with('[') {
