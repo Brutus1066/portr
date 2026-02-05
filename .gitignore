@@ -1,0 +1,28 @@
+# Build artifacts
+/target/
+debug/
+release/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+Desktop.ini
+
+# Test artifacts
+*.log
+*.tmp
+
+# Export files (from TUI)
+portr_export_*.json
+portr_export_*.csv
+portr_export_*.md
+
+# Development notes (not for public)
+CLAUDE.md
