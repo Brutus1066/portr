@@ -81,6 +81,11 @@ $ portr 3000
 
 ![Menu](screenshots/menu.png)
 
+### Docker Filter
+*Filter to show only Docker containers*
+
+![Docker](screenshots/docker.png)
+
 ### Export Dialog
 *Export ports to JSON, CSV, or Markdown*
 
