@@ -3,8 +3,16 @@ name: CI
 on:
   push:
     branches: [ main ]
+    tags: [ 'v*' ]
   pull_request:
     branches: [ main ]
+  workflow_dispatch:
+    inputs:
+      release:
+        description: 'Create release with binaries'
+        required: false
+        default: false
+        type: boolean
 
 env:
   CARGO_TERM_COLOR: always
@@ -42,7 +50,7 @@ jobs:
   release:
     needs: test
     runs-on: ${{ matrix.os }}
-    if: startsWith(github.ref, 'refs/tags/v')
+    if: startsWith(github.ref, 'refs/tags/v') || (github.event_name == 'workflow_dispatch' && inputs.release)
     strategy:
       matrix:
         include:
@@ -89,5 +97,32 @@ jobs:
       uses: softprops/action-gh-release@v1
       with:
         files: ${{ matrix.artifact }}
+        generate_release_notes: true
+        draft: false
+        prerelease: false
+        body: |
+          ## portr ${{ github.ref_name }}
+          
+          Lightning-fast port inspector & process killer.
+          
+          ### Installation
+          
+          **Via cargo:**
+          ```bash
+          cargo install portr
+          ```
+          
+          **Pre-built binaries:**
+          Download the appropriate binary for your platform below.
+          
+          | Platform | Binary |
+          |----------|--------|
+          | Windows x64 | `portr-windows-x64.exe` |
+          | Linux x64 | `portr-linux-x64` |
+          | macOS x64 | `portr-macos-x64` |
+          | macOS ARM64 | `portr-macos-arm64` |
+          
+          🐸 LazyFrog | [kindware.dev](https://kindware.dev)
       env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
