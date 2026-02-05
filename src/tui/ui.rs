@@ -16,13 +16,13 @@ use ratatui::{
 };
 
 // Modern color palette (inspired by Tokyo Night)
-const ACCENT: Color = Color::Rgb(122, 162, 247);   // Soft blue
-const ACCENT2: Color = Color::Rgb(187, 154, 247);  // Purple
-const SUCCESS: Color = Color::Rgb(158, 206, 106);  // Green  
-const WARNING: Color = Color::Rgb(224, 175, 104);  // Orange/yellow
-const DANGER: Color = Color::Rgb(247, 118, 142);   // Red/pink
-const MUTED: Color = Color::Rgb(86, 95, 137);      // Muted gray-blue
-const BG_DARK: Color = Color::Rgb(26, 27, 38);     // Dark background
+const ACCENT: Color = Color::Rgb(122, 162, 247); // Soft blue
+const ACCENT2: Color = Color::Rgb(187, 154, 247); // Purple
+const SUCCESS: Color = Color::Rgb(158, 206, 106); // Green
+const WARNING: Color = Color::Rgb(224, 175, 104); // Orange/yellow
+const DANGER: Color = Color::Rgb(247, 118, 142); // Red/pink
+const MUTED: Color = Color::Rgb(86, 95, 137); // Muted gray-blue
+const BG_DARK: Color = Color::Rgb(26, 27, 38); // Dark background
 const TEXT_DIM: Color = Color::Rgb(169, 177, 214); // Dimmed text
 
 /// Main draw function
@@ -56,21 +56,27 @@ fn draw_header(f: &mut Frame, app: &App, area: Rect) {
     // Animated pulse effect based on tick
     let pulse = (app.tick % 20) < 10;
     let accent_color = if pulse { ACCENT } else { ACCENT2 };
-    
+
     // Stylized compact ASCII logo - fits in header
     let logo = vec![
         Span::styled("╭─", Style::default().fg(MUTED)),
         Span::styled("🐸", Style::default()),
         Span::styled("─╮", Style::default().fg(MUTED)),
         Span::styled(" ░▒▓", Style::default().fg(MUTED)),
-        Span::styled(" PORTR ", Style::default().fg(accent_color).bold().add_modifier(Modifier::UNDERLINED)),
+        Span::styled(
+            " PORTR ",
+            Style::default()
+                .fg(accent_color)
+                .bold()
+                .add_modifier(Modifier::UNDERLINED),
+        ),
         Span::styled("▓▒░ ", Style::default().fg(MUTED)),
         Span::styled("╭", Style::default().fg(MUTED)),
         Span::styled("──", Style::default().fg(ACCENT)),
         Span::styled("╮", Style::default().fg(MUTED)),
         Span::raw("  "),
     ];
-    
+
     // Stats section
     let mut stats = vec![
         Span::styled(
@@ -93,11 +99,20 @@ fn draw_header(f: &mut Frame, app: &App, area: Rect) {
     // Add active filter badges with pill-style
     if app.docker_only {
         stats.push(Span::styled("  ", Style::default()));
-        stats.push(Span::styled(" 🐳 Docker ", Style::default().fg(Color::Black).bg(Color::LightBlue).bold()));
+        stats.push(Span::styled(
+            " 🐳 Docker ",
+            Style::default()
+                .fg(Color::Black)
+                .bg(Color::LightBlue)
+                .bold(),
+        ));
     }
     if app.critical_only {
         stats.push(Span::styled("  ", Style::default()));
-        stats.push(Span::styled(" ⚠ Critical ", Style::default().fg(Color::Black).bg(DANGER).bold()));
+        stats.push(Span::styled(
+            " ⚠ Critical ",
+            Style::default().fg(Color::Black).bg(DANGER).bold(),
+        ));
     }
     if !app.filter_text.is_empty() {
         stats.push(Span::styled("  ", Style::default()));
@@ -119,7 +134,7 @@ fn draw_header(f: &mut Frame, app: &App, area: Rect) {
 
     // Combine all sections
     let content: Vec<Span> = [logo, stats, status].concat();
-    
+
     let header = Paragraph::new(Line::from(content))
         .block(
             Block::default()
@@ -150,9 +165,11 @@ fn draw_body(f: &mut Frame, app: &App, area: Rect) {
 
 /// Draw the port table
 fn draw_table(f: &mut Frame, app: &App, area: Rect) {
-    let header_cells = ["", "PORT", "PROTO", "PID", "PROCESS", "MEMORY", "UPTIME", "STATE"]
-        .iter()
-        .map(|h| Cell::from(*h).style(Style::default().fg(ACCENT).bold()));
+    let header_cells = [
+        "", "PORT", "PROTO", "PID", "PROCESS", "MEMORY", "UPTIME", "STATE",
+    ]
+    .iter()
+    .map(|h| Cell::from(*h).style(Style::default().fg(ACCENT).bold()));
     let header = Row::new(header_cells).height(1).bottom_margin(1);
 
     let rows = app.ports.iter().enumerate().map(|(i, port)| {
@@ -234,12 +251,13 @@ fn draw_table(f: &mut Frame, app: &App, area: Rect) {
             Block::default()
                 .borders(Borders::ALL)
                 .border_style(Style::default().fg(MUTED))
-                .title(Span::styled(
-                    title,
-                    Style::default().fg(ACCENT).bold(),
-                )),
+                .title(Span::styled(title, Style::default().fg(ACCENT).bold())),
         )
-        .row_highlight_style(Style::default().bg(Color::Rgb(45, 50, 80)).add_modifier(Modifier::BOLD))
+        .row_highlight_style(
+            Style::default()
+                .bg(Color::Rgb(45, 50, 80))
+                .add_modifier(Modifier::BOLD),
+        )
         .highlight_spacing(HighlightSpacing::Always);
 
     let mut state = TableState::default().with_selected(Some(app.selected));
@@ -252,8 +270,7 @@ fn draw_table(f: &mut Frame, app: &App, area: Rect) {
             .end_symbol(Some("▼"))
             .track_symbol(Some("│"))
             .thumb_symbol("█");
-        let mut scrollbar_state =
-            ScrollbarState::new(app.ports.len()).position(app.selected);
+        let mut scrollbar_state = ScrollbarState::new(app.ports.len()).position(app.selected);
         f.render_stateful_widget(
             scrollbar.style(Style::default().fg(MUTED)),
             area.inner(ratatui::layout::Margin {
@@ -272,17 +289,23 @@ fn draw_details(f: &mut Frame, app: &App, area: Rect) {
         None => {
             let empty = Paragraph::new(vec![
                 Line::from(""),
-                Line::from(Span::styled("  No port selected", Style::default().fg(MUTED))),
+                Line::from(Span::styled(
+                    "  No port selected",
+                    Style::default().fg(MUTED),
+                )),
                 Line::from(""),
-                Line::from(Span::styled("  Use ↑↓ to navigate", Style::default().fg(TEXT_DIM))),
+                Line::from(Span::styled(
+                    "  Use ↑↓ to navigate",
+                    Style::default().fg(TEXT_DIM),
+                )),
             ])
-                .block(
-                    Block::default()
-                        .borders(Borders::ALL)
-                        .border_style(Style::default().fg(MUTED))
-                        .title(Span::styled(" ◈ Details ", Style::default().fg(ACCENT))),
-                )
-                .style(Style::default().fg(TEXT_DIM));
+            .block(
+                Block::default()
+                    .borders(Borders::ALL)
+                    .border_style(Style::default().fg(MUTED))
+                    .title(Span::styled(" ◈ Details ", Style::default().fg(ACCENT))),
+            )
+            .style(Style::default().fg(TEXT_DIM));
             f.render_widget(empty, area);
             return;
         }
@@ -299,10 +322,7 @@ fn draw_details(f: &mut Frame, app: &App, area: Rect) {
         Line::from(""),
         Line::from(vec![
             Span::styled("  ⬢ Port: ", Style::default().fg(MUTED)),
-            Span::styled(
-                port.port.to_string(),
-                Style::default().fg(ACCENT).bold(),
-            ),
+            Span::styled(port.port.to_string(), Style::default().fg(ACCENT).bold()),
             if is_critical {
                 Span::styled(" ⚠", Style::default().fg(DANGER))
             } else {
@@ -334,27 +354,52 @@ fn draw_details(f: &mut Frame, app: &App, area: Rect) {
             Span::styled(&port.local_address, Style::default().fg(TEXT_DIM)),
         ]),
         Line::from(""),
-        Line::from(Span::styled("  ────────────────────────", Style::default().fg(MUTED))),
+        Line::from(Span::styled(
+            "  ────────────────────────",
+            Style::default().fg(MUTED),
+        )),
         Line::from(""),
     ];
 
     // Memory with visual bar
     lines.push(Line::from(vec![
         Span::styled("  ▤ Memory: ", Style::default().fg(MUTED)),
-        Span::styled(format_mb(port.memory_mb), Style::default().fg(if port.memory_mb > 100.0 { WARNING } else { SUCCESS })),
-        Span::styled(format!(" {}", mem_bar), Style::default().fg(if port.memory_mb > 500.0 { DANGER } else if port.memory_mb > 100.0 { WARNING } else { SUCCESS })),
+        Span::styled(
+            format_mb(port.memory_mb),
+            Style::default().fg(if port.memory_mb > 100.0 {
+                WARNING
+            } else {
+                SUCCESS
+            }),
+        ),
+        Span::styled(
+            format!(" {}", mem_bar),
+            Style::default().fg(if port.memory_mb > 500.0 {
+                DANGER
+            } else if port.memory_mb > 100.0 {
+                WARNING
+            } else {
+                SUCCESS
+            }),
+        ),
     ]));
 
     // CPU
     lines.push(Line::from(vec![
         Span::styled("  ◐ CPU: ", Style::default().fg(MUTED)),
-        Span::styled(format!("{:.1}%", port.cpu_percent), Style::default().fg(ACCENT)),
+        Span::styled(
+            format!("{:.1}%", port.cpu_percent),
+            Style::default().fg(ACCENT),
+        ),
     ]));
 
     // Uptime
     lines.push(Line::from(vec![
         Span::styled("  ◷ Uptime: ", Style::default().fg(MUTED)),
-        Span::styled(format_uptime(port.uptime_secs), Style::default().fg(TEXT_DIM)),
+        Span::styled(
+            format_uptime(port.uptime_secs),
+            Style::default().fg(TEXT_DIM),
+        ),
     ]));
 
     lines.push(Line::from(""));
@@ -412,7 +457,13 @@ fn draw_details(f: &mut Frame, app: &App, area: Rect) {
         Style::default().fg(MUTED)
     };
 
-    let title_icon = if is_critical { "⚠" } else if is_docker { "🐳" } else { "◈" };
+    let title_icon = if is_critical {
+        "⚠"
+    } else if is_docker {
+        "🐳"
+    } else {
+        "◈"
+    };
     let title = format!(" {} Details ", title_icon);
 
     let details = Paragraph::new(lines)
@@ -440,7 +491,12 @@ fn draw_footer(f: &mut Frame, app: &App, area: Rect) {
         Line::from(vec![
             Span::styled(" 🔍 ", Style::default().fg(ACCENT)),
             Span::styled(&app.filter_input, Style::default().fg(Color::White).bold()),
-            Span::styled("▋", Style::default().fg(ACCENT).add_modifier(Modifier::SLOW_BLINK)), // Cursor
+            Span::styled(
+                "▋",
+                Style::default()
+                    .fg(ACCENT)
+                    .add_modifier(Modifier::SLOW_BLINK),
+            ), // Cursor
             Span::styled("  ", Style::default()),
             Span::styled("⏎ apply", Style::default().fg(SUCCESS)),
             Span::styled("  ", Style::default()),
@@ -504,7 +560,10 @@ fn draw_menu_popup(f: &mut Frame, app: &App) {
         )),
         Line::from(vec![
             Span::styled("     │   ", Style::default().fg(MUTED)),
-            Span::styled("🐸 PORTR QUICK MENU", Style::default().fg(title_color).bold()),
+            Span::styled(
+                "🐸 PORTR QUICK MENU",
+                Style::default().fg(title_color).bold(),
+            ),
             Span::styled("      │", Style::default().fg(MUTED)),
         ]),
         Line::from(Span::styled(
@@ -520,11 +579,21 @@ fn draw_menu_popup(f: &mut Frame, app: &App) {
 
     // Icons for each menu item (9 items now)
     let icons = ["📊", "📋", "🔌", "📡", "🐳", "⚠️", "📁", "❓", "🚪"];
-    let item_colors = [ACCENT, SUCCESS, ACCENT2, WARNING, Color::LightBlue, DANGER, SUCCESS, ACCENT, DANGER];
+    let item_colors = [
+        ACCENT,
+        SUCCESS,
+        ACCENT2,
+        WARNING,
+        Color::LightBlue,
+        DANGER,
+        SUCCESS,
+        ACCENT,
+        DANGER,
+    ];
 
     for (i, (key, name, desc)) in MENU_ITEMS.iter().enumerate() {
         let is_selected = i == app.menu_selected;
-        
+
         // Add section dividers
         if i == 4 {
             menu_lines.push(Line::from(Span::styled(
@@ -544,7 +613,7 @@ fn draw_menu_popup(f: &mut Frame, app: &App) {
                 Style::default().fg(MUTED),
             )));
         }
-        
+
         let selector = if is_selected { " ▶" } else { "  " };
         let bg_style = if is_selected {
             Style::default().bg(Color::Rgb(45, 50, 80))
@@ -558,14 +627,20 @@ fn draw_menu_popup(f: &mut Frame, app: &App) {
         };
         let desc_style = Style::default().fg(MUTED).italic();
 
-        menu_lines.push(Line::from(vec![
-            Span::styled("     │", Style::default().fg(MUTED)),
-            Span::styled(selector, Style::default().fg(SUCCESS)),
-            Span::styled(format!(" {} ", key), Style::default().fg(Color::Black).bg(item_colors[i]).bold()),
-            Span::raw(format!(" {} ", icons[i])),
-            Span::styled(format!("{:<12}", name), name_style),
-            Span::styled(desc.to_string(), desc_style),
-        ]).style(bg_style));
+        menu_lines.push(
+            Line::from(vec![
+                Span::styled("     │", Style::default().fg(MUTED)),
+                Span::styled(selector, Style::default().fg(SUCCESS)),
+                Span::styled(
+                    format!(" {} ", key),
+                    Style::default().fg(Color::Black).bg(item_colors[i]).bold(),
+                ),
+                Span::raw(format!(" {} ", icons[i])),
+                Span::styled(format!("{:<12}", name), name_style),
+                Span::styled(desc.to_string(), desc_style),
+            ])
+            .style(bg_style),
+        );
     }
 
     menu_lines.push(Line::from(Span::styled(
@@ -648,17 +723,26 @@ fn draw_help_popup(f: &mut Frame) {
         Line::from(vec![
             Span::styled("   │ ", Style::default().fg(MUTED)),
             Span::styled(" K ", Style::default().fg(Color::Black).bg(DANGER).bold()),
-            Span::styled(" Kill selected process (Shift+K)      │", Style::default().fg(TEXT_DIM)),
+            Span::styled(
+                " Kill selected process (Shift+K)      │",
+                Style::default().fg(TEXT_DIM),
+            ),
         ]),
         Line::from(vec![
             Span::styled("   │ ", Style::default().fg(MUTED)),
             Span::styled(" r ", Style::default().fg(Color::Black).bg(SUCCESS)),
-            Span::styled(" Refresh port list                    │", Style::default().fg(TEXT_DIM)),
+            Span::styled(
+                " Refresh port list                    │",
+                Style::default().fg(TEXT_DIM),
+            ),
         ]),
         Line::from(vec![
             Span::styled("   │ ", Style::default().fg(MUTED)),
             Span::styled(" e ", Style::default().fg(Color::Black).bg(SUCCESS)),
-            Span::styled(" Export ports (JSON/CSV/MD)           │", Style::default().fg(TEXT_DIM)),
+            Span::styled(
+                " Export ports (JSON/CSV/MD)           │",
+                Style::default().fg(TEXT_DIM),
+            ),
         ]),
         Line::from(Span::styled(
             "   ├─ Filters & Views ────────────────────────┤",
@@ -667,21 +751,33 @@ fn draw_help_popup(f: &mut Frame) {
         Line::from(vec![
             Span::styled("   │ ", Style::default().fg(MUTED)),
             Span::styled(" m ", Style::default().fg(Color::Black).bg(ACCENT)),
-            Span::styled(" Open quick menu                      │", Style::default().fg(TEXT_DIM)),
+            Span::styled(
+                " Open quick menu                      │",
+                Style::default().fg(TEXT_DIM),
+            ),
         ]),
         Line::from(vec![
             Span::styled("   │ ", Style::default().fg(MUTED)),
             Span::styled(" / ", Style::default().fg(Color::Black).bg(ACCENT)),
-            Span::styled(" Search/filter by text                │", Style::default().fg(TEXT_DIM)),
+            Span::styled(
+                " Search/filter by text                │",
+                Style::default().fg(TEXT_DIM),
+            ),
         ]),
         Line::from(vec![
             Span::styled("   │ ", Style::default().fg(MUTED)),
             Span::styled(" f ", Style::default().fg(Color::Black).bg(ACCENT2)),
-            Span::styled(" Cycle filter (All/TCP/UDP)           │", Style::default().fg(TEXT_DIM)),
+            Span::styled(
+                " Cycle filter (All/TCP/UDP)           │",
+                Style::default().fg(TEXT_DIM),
+            ),
         ]),
         Line::from(vec![
             Span::styled("   │ ", Style::default().fg(MUTED)),
-            Span::styled(" d ", Style::default().fg(Color::Black).bg(Color::LightBlue)),
+            Span::styled(
+                " d ",
+                Style::default().fg(Color::Black).bg(Color::LightBlue),
+            ),
             Span::styled(" Docker only      ", Style::default().fg(TEXT_DIM)),
             Span::styled(" c ", Style::default().fg(Color::Black).bg(DANGER)),
             Span::styled(" Critical only │", Style::default().fg(TEXT_DIM)),
@@ -707,16 +803,20 @@ fn draw_help_popup(f: &mut Frame) {
         Line::from(vec![
             Span::styled("   │ ", Style::default().fg(MUTED)),
             Span::styled(" Esc ", Style::default().fg(Color::Black).bg(WARNING)),
-            Span::styled(" Clear filters / Exit                │", Style::default().fg(TEXT_DIM)),
+            Span::styled(
+                " Clear filters / Exit                │",
+                Style::default().fg(TEXT_DIM),
+            ),
         ]),
         Line::from(Span::styled(
             "   └──────────────────────────────────────────┘",
             Style::default().fg(MUTED),
         )),
         Line::from(""),
-        Line::from(vec![
-            Span::styled("          Press any key to close", Style::default().fg(TEXT_DIM).italic()),
-        ]),
+        Line::from(vec![Span::styled(
+            "          Press any key to close",
+            Style::default().fg(TEXT_DIM).italic(),
+        )]),
     ];
 
     let help = Paragraph::new(help_text)
@@ -807,7 +907,7 @@ fn state_style(state: &str) -> Style {
 /// Draw the export popup
 fn draw_export_popup(f: &mut Frame, app: &App) {
     use super::app::ExportFormat;
-    
+
     let area = centered_rect(50, 35, f.area());
 
     // Clear background
@@ -841,9 +941,10 @@ fn draw_export_popup(f: &mut Frame, app: &App) {
             Span::styled(" to file", Style::default().fg(ACCENT).bold()),
         ]),
         Line::from(""),
-        Line::from(vec![
-            Span::styled("  Select format: ", Style::default().fg(TEXT_DIM)),
-        ]),
+        Line::from(vec![Span::styled(
+            "  Select format: ",
+            Style::default().fg(TEXT_DIM),
+        )]),
         Line::from(""),
         Line::from(vec![
             Span::styled("    ", Style::default()),
@@ -854,9 +955,10 @@ fn draw_export_popup(f: &mut Frame, app: &App) {
             Span::styled(" [M]arkdown ", md_style),
         ]),
         Line::from(""),
-        Line::from(vec![
-            Span::styled("  ─────────────────────────────────", Style::default().fg(MUTED)),
-        ]),
+        Line::from(vec![Span::styled(
+            "  ─────────────────────────────────",
+            Style::default().fg(MUTED),
+        )]),
         Line::from(""),
         Line::from(vec![
             Span::styled("  ", Style::default()),

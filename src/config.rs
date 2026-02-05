@@ -72,9 +72,12 @@ pub fn config_path() -> Option<PathBuf> {
 
     #[cfg(not(windows))]
     {
-        std::env::var("HOME")
-            .ok()
-            .map(|p| PathBuf::from(p).join(".config").join("portr").join("config.toml"))
+        std::env::var("HOME").ok().map(|p| {
+            PathBuf::from(p)
+                .join(".config")
+                .join("portr")
+                .join("config.toml")
+        })
     }
 }
 
@@ -156,7 +159,9 @@ pub fn resolve_alias(alias: &str, config: &Config) -> Option<u16> {
 
 /// Check if a string is a port number or could be an alias
 pub fn is_port_or_alias(s: &str) -> bool {
-    s.parse::<u16>().is_ok() || s.chars().all(|c| c.is_alphanumeric() || c == '_' || c == '-')
+    s.parse::<u16>().is_ok()
+        || s.chars()
+            .all(|c| c.is_alphanumeric() || c == '_' || c == '-')
 }
 
 /// Generate a default config file content

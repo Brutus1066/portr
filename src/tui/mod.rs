@@ -69,7 +69,9 @@ fn run_app<B: Backend>(terminal: &mut Terminal<B>, app: &mut App) -> Result<(), 
             .unwrap_or_else(|| Duration::from_secs(0));
 
         if crossterm::event::poll(timeout).map_err(|e| PortrError::SystemError(e.to_string()))? {
-            if let Event::Key(key) = event::read().map_err(|e| PortrError::SystemError(e.to_string()))? {
+            if let Event::Key(key) =
+                event::read().map_err(|e| PortrError::SystemError(e.to_string()))?
+            {
                 if key.kind == KeyEventKind::Press {
                     // Handle input mode first
                     if app.input_mode {
@@ -185,12 +187,18 @@ fn run_app<B: Backend>(terminal: &mut Terminal<B>, app: &mut App) -> Result<(), 
                             }
                             KeyCode::Esc => {
                                 // Esc clears filters first, then quits
-                                if !app.filter_text.is_empty() || app.docker_only || app.critical_only {
+                                if !app.filter_text.is_empty()
+                                    || app.docker_only
+                                    || app.critical_only
+                                {
                                     app.clear_filter();
                                     app.docker_only = false;
                                     app.critical_only = false;
                                     app.apply_filters();
-                                    app.set_status(&format!("Filters cleared ({} ports)", app.ports.len()));
+                                    app.set_status(&format!(
+                                        "Filters cleared ({} ports)",
+                                        app.ports.len()
+                                    ));
                                 } else {
                                     return Ok(());
                                 }

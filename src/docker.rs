@@ -127,9 +127,19 @@ pub fn stop_container_by_name(container_name: &str) -> Result<(), PortrError> {
 /// Check if a container is running a critical service that requires confirmation
 pub fn is_critical_container(container: &ContainerInfo) -> bool {
     let critical_images = [
-        "postgres", "mysql", "mariadb", "mongo", "redis",
-        "elasticsearch", "rabbitmq", "kafka", "zookeeper",
-        "consul", "vault", "etcd", "minio",
+        "postgres",
+        "mysql",
+        "mariadb",
+        "mongo",
+        "redis",
+        "elasticsearch",
+        "rabbitmq",
+        "kafka",
+        "zookeeper",
+        "consul",
+        "vault",
+        "etcd",
+        "minio",
     ];
 
     let image_lower = container.image.to_lowercase();
@@ -139,12 +149,12 @@ pub fn is_critical_container(container: &ContainerInfo) -> bool {
 // Async implementations using bollard
 #[cfg(feature = "docker")]
 async fn get_container_for_port_async(port: u16) -> Option<ContainerInfo> {
-    use bollard::Docker;
     use bollard::container::ListContainersOptions;
+    use bollard::Docker;
     use std::collections::HashMap;
 
     let docker = Docker::connect_with_local_defaults().ok()?;
-    
+
     let options = ListContainersOptions::<String> {
         all: false, // Only running containers
         filters: HashMap::new(),
@@ -158,7 +168,8 @@ async fn get_container_for_port_async(port: u16) -> Option<ContainerInfo> {
             for port_binding in ports {
                 if let Some(public_port) = port_binding.public_port {
                     if public_port == port {
-                        let name = container.names
+                        let name = container
+                            .names
                             .as_ref()
                             .and_then(|n| n.first())
                             .map(|n| n.trim_start_matches('/').to_string())
@@ -169,7 +180,10 @@ async fn get_container_for_port_async(port: u16) -> Option<ContainerInfo> {
                             .map(|p| PortMapping {
                                 host_port: p.public_port,
                                 container_port: p.private_port,
-                                protocol: p.typ.map(|t| format!("{:?}", t).to_lowercase()).unwrap_or_else(|| "tcp".to_string()),
+                                protocol: p
+                                    .typ
+                                    .map(|t| format!("{:?}", t).to_lowercase())
+                                    .unwrap_or_else(|| "tcp".to_string()),
                             })
                             .collect();
 
@@ -183,8 +197,14 @@ async fn get_container_for_port_async(port: u16) -> Option<ContainerInfo> {
                         return Some(ContainerInfo {
                             id: short_id,
                             name,
-                            image: container.image.clone().unwrap_or_else(|| "unknown".to_string()),
-                            status: container.status.clone().unwrap_or_else(|| "unknown".to_string()),
+                            image: container
+                                .image
+                                .clone()
+                                .unwrap_or_else(|| "unknown".to_string()),
+                            status: container
+                                .status
+                                .clone()
+                                .unwrap_or_else(|| "unknown".to_string()),
                             ports: port_mappings,
                         });
                     }
@@ -198,8 +218,8 @@ async fn get_container_for_port_async(port: u16) -> Option<ContainerInfo> {
 
 #[cfg(feature = "docker")]
 async fn get_all_containers_async() -> Result<Vec<ContainerInfo>, PortrError> {
-    use bollard::Docker;
     use bollard::container::ListContainersOptions;
+    use bollard::Docker;
     use std::collections::HashMap;
 
     let docker = Docker::connect_with_local_defaults()
@@ -219,28 +239,48 @@ async fn get_all_containers_async() -> Result<Vec<ContainerInfo>, PortrError> {
     let mut result = Vec::new();
 
     for container in containers {
-        let name = container.names
+        let name = container
+            .names
             .as_ref()
             .and_then(|n| n.first())
             .map(|n| n.trim_start_matches('/').to_string())
             .unwrap_or_else(|| "unknown".to_string());
 
-        let port_mappings: Vec<PortMapping> = container.ports
+        let port_mappings: Vec<PortMapping> = container
+            .ports
             .as_ref()
             .map(|ports| {
-                ports.iter().map(|p| PortMapping {
-                    host_port: p.public_port,
-                    container_port: p.private_port,
-                    protocol: p.typ.map(|t| format!("{:?}", t).to_lowercase()).unwrap_or_else(|| "tcp".to_string()),
-                }).collect()
+                ports
+                    .iter()
+                    .map(|p| PortMapping {
+                        host_port: p.public_port,
+                        container_port: p.private_port,
+                        protocol: p
+                            .typ
+                            .map(|t| format!("{:?}", t).to_lowercase())
+                            .unwrap_or_else(|| "tcp".to_string()),
+                    })
+                    .collect()
             })
             .unwrap_or_default();
 
         result.push(ContainerInfo {
-            id: container.id.clone().unwrap_or_default().chars().take(12).collect(),
+            id: container
+                .id
+                .clone()
+                .unwrap_or_default()
+                .chars()
+                .take(12)
+                .collect(),
             name,
-            image: container.image.clone().unwrap_or_else(|| "unknown".to_string()),
-            status: container.status.clone().unwrap_or_else(|| "unknown".to_string()),
+            image: container
+                .image
+                .clone()
+                .unwrap_or_else(|| "unknown".to_string()),
+            status: container
+                .status
+                .clone()
+                .unwrap_or_else(|| "unknown".to_string()),
             ports: port_mappings,
         });
     }
@@ -250,8 +290,8 @@ async fn get_all_containers_async() -> Result<Vec<ContainerInfo>, PortrError> {
 
 #[cfg(feature = "docker")]
 async fn stop_container_async(container_id: &str) -> Result<(), PortrError> {
-    use bollard::Docker;
     use bollard::container::StopContainerOptions;
+    use bollard::Docker;
 
     let docker = Docker::connect_with_local_defaults()
         .map_err(|e| PortrError::DockerError(e.to_string()))?;
@@ -279,7 +319,9 @@ async fn get_all_containers_async() -> Result<Vec<ContainerInfo>, PortrError> {
 
 #[cfg(not(feature = "docker"))]
 async fn stop_container_async(_container_id: &str) -> Result<(), PortrError> {
-    Err(PortrError::DockerError("Docker feature not enabled. Rebuild with --features docker".to_string()))
+    Err(PortrError::DockerError(
+        "Docker feature not enabled. Rebuild with --features docker".to_string(),
+    ))
 }
 
 /// Print Docker container info for a port
@@ -300,18 +342,20 @@ pub fn print_container_info(port: u16) {
         println!("    ID: {}", container.id.dimmed());
         println!("    Image: {}", container.image);
         println!("    Status: {}", container.status.green());
-        
+
         if !container.ports.is_empty() {
             print!("    Ports: ");
-            let port_strs: Vec<String> = container.ports
+            let port_strs: Vec<String> = container
+                .ports
                 .iter()
                 .filter_map(|p| {
-                    p.host_port.map(|hp| format!("{}:{}/{}", hp, p.container_port, p.protocol))
+                    p.host_port
+                        .map(|hp| format!("{}:{}/{}", hp, p.container_port, p.protocol))
                 })
                 .collect();
             println!("{}", port_strs.join(", ").yellow());
         }
-        
+
         println!(
             "\n  {} Stop container: {}",
             "→".dimmed(),
@@ -340,7 +384,7 @@ mod tests {
             status: "Up 2 hours".to_string(),
             ports: vec![],
         };
-        
+
         // Stable key should be name:image
         assert_eq!(container.stable_key(), "my-postgres:postgres:15");
     }
@@ -355,7 +399,7 @@ mod tests {
             status: "Up 2 hours".to_string(),
             ports: vec![],
         };
-        
+
         let container2 = ContainerInfo {
             id: "xyz789abc012".to_string(), // Different ID after restart
             name: "my-postgres".to_string(),
@@ -363,7 +407,7 @@ mod tests {
             status: "Up 1 minute".to_string(),
             ports: vec![],
         };
-        
+
         // Should match because name + image are the same
         assert!(container1.matches(&container2));
         assert_eq!(container1.stable_key(), container2.stable_key());
@@ -378,7 +422,7 @@ mod tests {
             status: "Up 2 hours".to_string(),
             ports: vec![],
         };
-        
+
         let container2 = ContainerInfo {
             id: "xyz789abc012".to_string(),
             name: "my-redis".to_string(),
@@ -386,7 +430,7 @@ mod tests {
             status: "Up 1 hour".to_string(),
             ports: vec![],
         };
-        
+
         // Should NOT match - different containers
         assert!(!container1.matches(&container2));
         assert_ne!(container1.stable_key(), container2.stable_key());
@@ -401,7 +445,7 @@ mod tests {
             status: "Up".to_string(),
             ports: vec![],
         };
-        
+
         assert!(is_critical_container(&container));
     }
 
@@ -414,7 +458,7 @@ mod tests {
             status: "Up".to_string(),
             ports: vec![],
         };
-        
+
         assert!(is_critical_container(&container));
     }
 
@@ -427,7 +471,7 @@ mod tests {
             status: "Up".to_string(),
             ports: vec![],
         };
-        
+
         assert!(is_critical_container(&container));
     }
 
@@ -440,7 +484,7 @@ mod tests {
             status: "Up".to_string(),
             ports: vec![],
         };
-        
+
         // Node app is not critical
         assert!(!is_critical_container(&container));
     }
@@ -454,7 +498,7 @@ mod tests {
             status: "Up".to_string(),
             ports: vec![],
         };
-        
+
         // Nginx is not in critical list (stateless)
         assert!(!is_critical_container(&container));
     }

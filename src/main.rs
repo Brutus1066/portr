@@ -229,19 +229,24 @@ fn run(cli: Cli) -> Result<(), PortrError> {
             Commands::Dashboard => tui::run_dashboard(),
             Commands::Watch { port, interval } => cmd_watch(port, interval),
             Commands::Find { port } => cmd_find(port, format, cli.verbose, false),
-            Commands::Kill { ports, force, dry_run, sigkill } => {
+            Commands::Kill {
+                ports,
+                force,
+                dry_run,
+                sigkill,
+            } => {
                 // Force = true if --force flag OR confirm=false in config
                 let effective_force = force || !app_config.defaults.confirm;
                 for port in ports {
                     cmd_kill(port, effective_force, dry_run, sigkill)?;
                 }
                 Ok(())
-            },
+            }
             Commands::Completions { shell } => {
                 let mut cmd = Cli::command();
                 generate(shell, &mut cmd, "portr", &mut io::stdout());
                 Ok(())
-            },
+            }
             Commands::Config { action } => cmd_config(action),
         };
     }
@@ -296,22 +301,20 @@ fn run(cli: Cli) -> Result<(), PortrError> {
 /// Handle config subcommand
 fn cmd_config(action: ConfigAction) -> Result<(), PortrError> {
     match action {
-        ConfigAction::Init => {
-            match config::init_config() {
-                Ok(path) => {
-                    println!(
-                        "{} Created config file at: {}",
-                        "✓".green().bold(),
-                        path.display().to_string().cyan()
-                    );
-                    println!();
-                    println!("Edit this file to customize portr settings and add port aliases.");
-                }
-                Err(e) => {
-                    println!("{} {}", "!".yellow().bold(), e);
-                }
+        ConfigAction::Init => match config::init_config() {
+            Ok(path) => {
+                println!(
+                    "{} Created config file at: {}",
+                    "✓".green().bold(),
+                    path.display().to_string().cyan()
+                );
+                println!();
+                println!("Edit this file to customize portr settings and add port aliases.");
             }
-        }
+            Err(e) => {
+                println!("{} {}", "!".yellow().bold(), e);
+            }
+        },
         ConfigAction::Path => {
             if let Some(path) = config::config_path() {
                 println!("{}", path.display());
@@ -396,7 +399,12 @@ fn cmd_list(tcp_only: bool, udp_only: bool, format: OutputFormat) -> Result<(), 
 }
 
 /// Find what's using a specific port
-fn cmd_find(port: u16, format: OutputFormat, verbose: bool, show_tree: bool) -> Result<(), PortrError> {
+fn cmd_find(
+    port: u16,
+    format: OutputFormat,
+    verbose: bool,
+    show_tree: bool,
+) -> Result<(), PortrError> {
     let info = port::get_port_info(port)?;
 
     match info {
@@ -510,7 +518,7 @@ fn cmd_kill(port: u16, force: bool, dry_run: bool, sigkill: bool) -> Result<(), 
         Some(port_info) => {
             // Check for critical services
             let is_critical = services::requires_confirmation(port);
-            
+
             // Dry run mode - just show what would happen
             if dry_run {
                 let warning = if is_critical {
@@ -531,12 +539,12 @@ fn cmd_kill(port: u16, force: bool, dry_run: bool, sigkill: bool) -> Result<(), 
 
             if !force {
                 display::print_port_details(&port_info, false);
-                
+
                 // Show service warning for critical services
                 if is_critical {
                     services::print_service_info(port);
                 }
-                
+
                 println!();
 
                 if !confirm_kill(&port_info, is_critical) {
@@ -613,7 +621,10 @@ fn kill_docker_container(
         let port_strs: Vec<String> = container
             .ports
             .iter()
-            .filter_map(|p| p.host_port.map(|hp| format!("{}:{}/{}", hp, p.container_port, p.protocol)))
+            .filter_map(|p| {
+                p.host_port
+                    .map(|hp| format!("{}:{}/{}", hp, p.container_port, p.protocol))
+            })
             .collect();
         if !port_strs.is_empty() {
             println!("     Ports: {}", port_strs.join(", ").yellow());
@@ -628,10 +639,7 @@ fn kill_docker_container(
             "⚠".red().bold(),
             "CRITICAL DATABASE".red().bold()
         );
-        println!(
-            "    Stopping may cause {}",
-            "DATA LOSS".red().bold()
-        );
+        println!("    Stopping may cause {}", "DATA LOSS".red().bold());
     }
     println!();
 
@@ -655,10 +663,7 @@ fn kill_docker_container(
                 return Ok(());
             }
         } else {
-            print!(
-                "  {} Stop this container? [y/N]: ",
-                "?".yellow().bold()
-            );
+            print!("  {} Stop this container? [y/N]: ", "?".yellow().bold());
             std::io::stdout().flush().ok();
 
             let mut input = String::new();

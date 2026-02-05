@@ -70,7 +70,7 @@ pub fn print_port_table(ports: &[PortInfo]) {
         "●".blue().bold(),
         ports.len().to_string().yellow()
     );
-    
+
     // Hint for discoverability
     println!(
         "\n{} {} {} {} {} {} {}",
@@ -101,12 +101,12 @@ pub fn print_port_details(info: &PortInfo, verbose: bool) {
     // Main info
     print_detail_line("PID", &info.pid.to_string(), "yellow");
     print_detail_line("Process", &info.process_name, "green");
-    
+
     // Show parent process if available
     if let (Some(ppid), Some(ref pname)) = (info.parent_pid, &info.parent_name) {
         print_detail_line("Parent", &format!("{} (PID {})", pname, ppid), "dimmed");
     }
-    
+
     print_detail_line("Protocol", &info.protocol, "white");
     print_detail_line("State", &info.state, "white");
     print_detail_line("Local", &info.local_address, "white");
@@ -132,7 +132,12 @@ pub fn print_port_details(info: &PortInfo, verbose: bool) {
 
     // Bottom border
     println!("{}", "│".cyan());
-    println!("{}{}{}", "╰".cyan(), "─".repeat(box_width - 2).cyan(), "╯".cyan());
+    println!(
+        "{}{}{}",
+        "╰".cyan(),
+        "─".repeat(box_width - 2).cyan(),
+        "╯".cyan()
+    );
 
     // Action hints
     println!(
@@ -153,12 +158,7 @@ fn print_detail_line(label: &str, value: &str, color: &str) {
         _ => value.white().to_string(),
     };
 
-    println!(
-        "{}  {:>10}: {}",
-        "│".cyan(),
-        label.dimmed(),
-        colored_value
-    );
+    println!("{}  {:>10}: {}", "│".cyan(), label.dimmed(), colored_value);
 }
 
 /// Print JSON output

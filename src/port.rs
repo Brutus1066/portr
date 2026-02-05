@@ -63,7 +63,7 @@ pub fn get_listening_ports() -> Result<Vec<PortInfo>, PortrError> {
     for conn in connections {
         if let Some(pid) = conn.pid {
             let process_info = get_process_info(&sys, pid);
-            
+
             results.push(PortInfo {
                 port: conn.local_port,
                 protocol: conn.protocol.clone(),
@@ -71,7 +71,9 @@ pub fn get_listening_ports() -> Result<Vec<PortInfo>, PortrError> {
                 process_name: process_info.name,
                 process_path: process_info.path,
                 local_address: format!("{}:{}", conn.local_addr, conn.local_port),
-                remote_address: conn.remote_addr.map(|a| format!("{}:{}", a, conn.remote_port.unwrap_or(0))),
+                remote_address: conn
+                    .remote_addr
+                    .map(|a| format!("{}:{}", a, conn.remote_port.unwrap_or(0))),
                 state: conn.state.clone(),
                 user: process_info.user,
                 memory_mb: process_info.memory_mb,
@@ -117,10 +119,14 @@ fn get_process_info(sys: &System, pid: u32) -> ProcessInfo {
 
     if let Some(process) = sys.process(pid) {
         // Get parent process info
-        let (parent_pid, parent_name) = process.parent()
+        let (parent_pid, parent_name) = process
+            .parent()
             .and_then(|ppid| sys.process(ppid).map(|p| (ppid, p)))
             .map(|(ppid, parent)| {
-                (Some(ppid.as_u32()), Some(parent.name().to_string_lossy().to_string()))
+                (
+                    Some(ppid.as_u32()),
+                    Some(parent.name().to_string_lossy().to_string()),
+                )
             })
             .unwrap_or((None, None));
 
@@ -184,7 +190,9 @@ fn get_network_connections() -> Result<Vec<NetConnection>, PortrError> {
             // Parse local address
             if let Some((local_addr, local_port)) = parse_address(parts[1]) {
                 let (remote_addr, remote_port) = if parts.len() > 2 && protocol == "TCP" {
-                    parse_address(parts[2]).map(|(a, p)| (Some(a), Some(p))).unwrap_or((None, None))
+                    parse_address(parts[2])
+                        .map(|(a, p)| (Some(a), Some(p)))
+                        .unwrap_or((None, None))
                 } else {
                     (None, None)
                 };
@@ -433,7 +441,9 @@ fn extract_port_from_lsof(name_part: &str) -> Option<u16> {
     if let Some(colon_pos) = name_part.rfind(':') {
         let port_str = &name_part[colon_pos + 1..];
         // Remove any trailing stuff like "(LISTEN)"
-        let port_end = port_str.find(|c: char| !c.is_numeric()).unwrap_or(port_str.len());
+        let port_end = port_str
+            .find(|c: char| !c.is_numeric())
+            .unwrap_or(port_str.len());
         port_str[..port_end].parse().ok()
     } else {
         None
@@ -444,10 +454,10 @@ fn extract_port_from_lsof(name_part: &str) -> Option<u16> {
 pub fn get_process_tree(pid: u32) -> Vec<(u32, String)> {
     let mut sys = System::new_all();
     sys.refresh_all();
-    
+
     let mut tree = Vec::new();
     let mut current_pid = Some(Pid::from_u32(pid));
-    
+
     // Walk up the parent chain
     while let Some(cpid) = current_pid {
         if let Some(process) = sys.process(cpid) {
@@ -456,13 +466,13 @@ pub fn get_process_tree(pid: u32) -> Vec<(u32, String)> {
         } else {
             break;
         }
-        
+
         // Safety limit to prevent infinite loops
         if tree.len() > 20 {
             break;
         }
     }
-    
+
     tree
 }
 
@@ -470,35 +480,38 @@ pub fn get_process_tree(pid: u32) -> Vec<(u32, String)> {
 pub fn get_child_processes(pid: u32) -> Vec<(u32, String)> {
     let mut sys = System::new_all();
     sys.refresh_all();
-    
+
     let target_pid = Pid::from_u32(pid);
     let mut children = Vec::new();
-    
+
     for (child_pid, process) in sys.processes() {
         if process.parent() == Some(target_pid) {
-            children.push((child_pid.as_u32(), process.name().to_string_lossy().to_string()));
+            children.push((
+                child_pid.as_u32(),
+                process.name().to_string_lossy().to_string(),
+            ));
         }
     }
-    
+
     children
 }
 
 /// Build and print a process tree view (ASCII art)
 pub fn print_process_tree(port_info: &PortInfo) {
     use colored::Colorize;
-    
+
     let parent_chain = get_process_tree(port_info.pid);
     let children = get_child_processes(port_info.pid);
-    
+
     println!("\n{}", " Process Tree ".cyan().bold());
     println!("{}", "─".repeat(40).dimmed());
-    
+
     // Print parent chain (reversed to show root first)
     let depth = parent_chain.len();
     for (i, (pid, name)) in parent_chain.iter().rev().enumerate() {
         let indent = "  ".repeat(i);
         let connector = if i == 0 { "●" } else { "├─" };
-        
+
         if *pid == port_info.pid {
             // Highlight the target process
             println!(
@@ -519,12 +532,16 @@ pub fn print_process_tree(port_info: &PortInfo) {
             );
         }
     }
-    
+
     // Print children
     if !children.is_empty() {
         let child_indent = "  ".repeat(depth);
         for (i, (pid, name)) in children.iter().enumerate() {
-            let connector = if i == children.len() - 1 { "└─" } else { "├─" };
+            let connector = if i == children.len() - 1 {
+                "└─"
+            } else {
+                "├─"
+            };
             println!(
                 "{}{}─{} {} {}",
                 child_indent,
@@ -535,7 +552,7 @@ pub fn print_process_tree(port_info: &PortInfo) {
             );
         }
     }
-    
+
     println!();
 }
 

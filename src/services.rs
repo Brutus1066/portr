@@ -95,7 +95,6 @@ static KNOWN_SERVICES: &[ServiceInfo] = &[
         risk: RiskLevel::Low,
         process_hints: &["java", "node"],
     },
-
     // Databases
     ServiceInfo {
         port: 3306,
@@ -160,7 +159,6 @@ static KNOWN_SERVICES: &[ServiceInfo] = &[
         risk: RiskLevel::High,
         process_hints: &["neo4j", "java"],
     },
-
     // Message queues
     ServiceInfo {
         port: 5672,
@@ -183,7 +181,6 @@ static KNOWN_SERVICES: &[ServiceInfo] = &[
         risk: RiskLevel::Medium,
         process_hints: &["nats-server", "nats"],
     },
-
     // Development tools
     ServiceInfo {
         port: 3000,
@@ -227,7 +224,6 @@ static KNOWN_SERVICES: &[ServiceInfo] = &[
         risk: RiskLevel::Medium,
         process_hints: &["php-fpm", "php"],
     },
-
     // Container & orchestration
     ServiceInfo {
         port: 2375,
@@ -257,7 +253,6 @@ static KNOWN_SERVICES: &[ServiceInfo] = &[
         risk: RiskLevel::Critical,
         process_hints: &["kubelet"],
     },
-
     // System services
     ServiceInfo {
         port: 22,
@@ -336,7 +331,6 @@ static KNOWN_SERVICES: &[ServiceInfo] = &[
         risk: RiskLevel::Critical,
         process_hints: &["svchost", "TermService"],
     },
-
     // Monitoring & observability
     ServiceInfo {
         port: 9090,
@@ -373,7 +367,6 @@ static KNOWN_SERVICES: &[ServiceInfo] = &[
         risk: RiskLevel::Low,
         process_hints: &["jaeger"],
     },
-
     // AI/ML
     ServiceInfo {
         port: 11434,
@@ -396,7 +389,6 @@ static KNOWN_SERVICES: &[ServiceInfo] = &[
         risk: RiskLevel::Low,
         process_hints: &["jupyter", "python"],
     },
-
     // Caching
     ServiceInfo {
         port: 11211,
@@ -405,7 +397,6 @@ static KNOWN_SERVICES: &[ServiceInfo] = &[
         risk: RiskLevel::High,
         process_hints: &["memcached"],
     },
-
     // Version control
     ServiceInfo {
         port: 9418,
@@ -414,7 +405,6 @@ static KNOWN_SERVICES: &[ServiceInfo] = &[
         risk: RiskLevel::Medium,
         process_hints: &["git-daemon"],
     },
-
     // Proxy
     ServiceInfo {
         port: 8888,
@@ -479,7 +469,7 @@ pub fn print_service_info(port: u16) {
         );
         println!("    {}", service.description.dimmed());
         println!("    Risk Level: {}", service.risk.colored_label());
-        
+
         if matches!(service.risk, RiskLevel::High | RiskLevel::Critical) {
             println!(
                 "    {} Killing this service may cause system instability!",
@@ -509,7 +499,7 @@ mod tests {
     #[test]
     fn test_requires_confirmation() {
         assert!(requires_confirmation(3306)); // MySQL - Critical
-        assert!(requires_confirmation(22));   // SSH - Critical
+        assert!(requires_confirmation(22)); // SSH - Critical
         assert!(requires_confirmation(6379)); // Redis - High
         assert!(!requires_confirmation(3000)); // Dev server - Low
         assert!(!requires_confirmation(65432)); // Unknown port

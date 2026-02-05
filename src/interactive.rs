@@ -2,7 +2,11 @@
 //!
 //! Provides a beautiful interactive TUI for port inspection and management.
 
-use std::io::{self, Write};
+use crate::{
+    display,
+    port::{self, PortInfo},
+    process, services, PortrError,
+};
 use crossterm::{
     cursor::{Hide, MoveTo, Show},
     event::{self, Event, KeyCode, KeyEvent, KeyModifiers},
@@ -10,7 +14,7 @@ use crossterm::{
     style::{Attribute, Color, Print, ResetColor, SetAttribute, SetForegroundColor},
     terminal::{self, Clear, ClearType, EnterAlternateScreen, LeaveAlternateScreen},
 };
-use crate::{display, port::{self, PortInfo}, process, services, PortrError};
+use std::io::{self, Write};
 
 /// Interactive mode state
 pub struct InteractiveApp {
@@ -36,7 +40,7 @@ impl InteractiveApp {
         let ports = port::get_listening_ports()?;
         let filtered_indices: Vec<usize> = (0..ports.len()).collect();
         let term_size = terminal::size().unwrap_or((80, 24));
-        
+
         Ok(Self {
             ports,
             selected: 0,
@@ -65,7 +69,8 @@ impl InteractiveApp {
             self.filtered_indices = (0..self.ports.len()).collect();
         } else {
             let filter_lower = self.filter.to_lowercase();
-            self.filtered_indices = self.ports
+            self.filtered_indices = self
+                .ports
                 .iter()
                 .enumerate()
                 .filter(|(_, p)| {
@@ -79,7 +84,7 @@ impl InteractiveApp {
                 .map(|(i, _)| i)
                 .collect();
         }
-        
+
         // Reset selection if needed
         if self.selected >= self.filtered_indices.len() {
             self.selected = 0;
@@ -119,7 +124,9 @@ impl InteractiveApp {
             if event::poll(std::time::Duration::from_millis(100))
                 .map_err(|e| PortrError::IoError(e.to_string()))?
             {
-                if let Event::Key(key) = event::read().map_err(|e| PortrError::IoError(e.to_string()))? {
+                if let Event::Key(key) =
+                    event::read().map_err(|e| PortrError::IoError(e.to_string()))?
+                {
                     match self.handle_key(key, stdout)? {
                         Action::Continue => {}
                         Action::Quit => break,
@@ -177,9 +184,8 @@ impl InteractiveApp {
             }
             KeyCode::PageDown => {
                 let page = (self.term_size.1 as usize).saturating_sub(10);
-                self.selected = (self.selected + page).min(
-                    self.filtered_indices.len().saturating_sub(1)
-                );
+                self.selected =
+                    (self.selected + page).min(self.filtered_indices.len().saturating_sub(1));
             }
 
             // Actions
@@ -236,7 +242,7 @@ impl InteractiveApp {
 
     fn enter_filter_mode(&mut self, stdout: &mut io::Stdout) -> Result<(), PortrError> {
         let (_width, height) = self.term_size;
-        
+
         // Draw filter prompt
         execute!(
             stdout,
@@ -245,13 +251,18 @@ impl InteractiveApp {
             SetForegroundColor(Color::Yellow),
             Print("Filter: "),
             ResetColor
-        ).map_err(|e| PortrError::IoError(e.to_string()))?;
-        stdout.flush().map_err(|e| PortrError::IoError(e.to_string()))?;
+        )
+        .map_err(|e| PortrError::IoError(e.to_string()))?;
+        stdout
+            .flush()
+            .map_err(|e| PortrError::IoError(e.to_string()))?;
 
         self.filter.clear();
-        
+
         loop {
-            if let Event::Key(key) = event::read().map_err(|e| PortrError::IoError(e.to_string()))? {
+            if let Event::Key(key) =
+                event::read().map_err(|e| PortrError::IoError(e.to_string()))?
+            {
                 match key.code {
                     KeyCode::Enter => break,
                     KeyCode::Esc => {
@@ -267,7 +278,7 @@ impl InteractiveApp {
                     }
                     _ => {}
                 }
-                
+
                 // Update filter display
                 self.apply_filter();
                 execute!(
@@ -276,17 +287,24 @@ impl InteractiveApp {
                     Clear(ClearType::UntilNewLine),
                     Print(&self.filter),
                     Print(format!(" ({} matches)", self.filtered_indices.len()))
-                ).map_err(|e| PortrError::IoError(e.to_string()))?;
-                stdout.flush().map_err(|e| PortrError::IoError(e.to_string()))?;
+                )
+                .map_err(|e| PortrError::IoError(e.to_string()))?;
+                stdout
+                    .flush()
+                    .map_err(|e| PortrError::IoError(e.to_string()))?;
             }
         }
 
         Ok(())
     }
 
-    fn show_details(&mut self, stdout: &mut io::Stdout, port_info: &PortInfo) -> Result<(), PortrError> {
+    fn show_details(
+        &mut self,
+        stdout: &mut io::Stdout,
+        port_info: &PortInfo,
+    ) -> Result<(), PortrError> {
         let (width, height) = self.term_size;
-        
+
         // Draw detail overlay
         execute!(stdout, Clear(ClearType::All), MoveTo(0, 0))
             .map_err(|e| PortrError::IoError(e.to_string()))?;
@@ -299,7 +317,8 @@ impl InteractiveApp {
             SetForegroundColor(Color::Cyan),
             Print(format!("{}{}{}\n\n", padding, title, padding)),
             ResetColor
-        ).map_err(|e| PortrError::IoError(e.to_string()))?;
+        )
+        .map_err(|e| PortrError::IoError(e.to_string()))?;
 
         // Details
         let details = [
@@ -307,7 +326,13 @@ impl InteractiveApp {
             ("Protocol", port_info.protocol.clone()),
             ("PID", port_info.pid.to_string()),
             ("Process", port_info.process_name.clone()),
-            ("Path", port_info.process_path.clone().unwrap_or_else(|| "N/A".to_string())),
+            (
+                "Path",
+                port_info
+                    .process_path
+                    .clone()
+                    .unwrap_or_else(|| "N/A".to_string()),
+            ),
             ("Local Address", port_info.local_address.clone()),
             ("State", port_info.state.clone()),
             ("Memory", format!("{:.1} MB", port_info.memory_mb)),
@@ -323,7 +348,8 @@ impl InteractiveApp {
                 SetForegroundColor(Color::White),
                 Print(format!("{}\n", value)),
                 ResetColor
-            ).map_err(|e| PortrError::IoError(e.to_string()))?;
+            )
+            .map_err(|e| PortrError::IoError(e.to_string()))?;
         }
 
         // Service info
@@ -344,7 +370,8 @@ impl InteractiveApp {
                 }),
                 Print(format!("{}\n", service.risk.label())),
                 ResetColor
-            ).map_err(|e| PortrError::IoError(e.to_string()))?;
+            )
+            .map_err(|e| PortrError::IoError(e.to_string()))?;
         }
 
         // Footer
@@ -357,8 +384,11 @@ impl InteractiveApp {
             SetForegroundColor(Color::Yellow),
             Print(" Press any key to return "),
             ResetColor
-        ).map_err(|e| PortrError::IoError(e.to_string()))?;
-        stdout.flush().map_err(|e| PortrError::IoError(e.to_string()))?;
+        )
+        .map_err(|e| PortrError::IoError(e.to_string()))?;
+        stdout
+            .flush()
+            .map_err(|e| PortrError::IoError(e.to_string()))?;
 
         // Wait for key
         loop {
@@ -370,18 +400,19 @@ impl InteractiveApp {
         Ok(())
     }
 
-    fn kill_process(&mut self, stdout: &mut io::Stdout, port_info: &PortInfo) -> Result<(), PortrError> {
+    fn kill_process(
+        &mut self,
+        stdout: &mut io::Stdout,
+        port_info: &PortInfo,
+    ) -> Result<(), PortrError> {
         let (_width, height) = self.term_size;
 
         // Check for critical services
         let is_critical = services::requires_confirmation(port_info.port);
-        
+
         // Draw confirmation dialog
-        execute!(
-            stdout,
-            MoveTo(0, height - 3),
-            Clear(ClearType::CurrentLine)
-        ).map_err(|e| PortrError::IoError(e.to_string()))?;
+        execute!(stdout, MoveTo(0, height - 3), Clear(ClearType::CurrentLine))
+            .map_err(|e| PortrError::IoError(e.to_string()))?;
 
         if is_critical {
             if let Some(service) = services::lookup(port_info.port) {
@@ -389,10 +420,15 @@ impl InteractiveApp {
                     stdout,
                     SetForegroundColor(Color::Red),
                     SetAttribute(Attribute::Bold),
-                    Print(format!(" ⚠ WARNING: {} is a {} service!\n", service.name, service.risk.label())),
+                    Print(format!(
+                        " ⚠ WARNING: {} is a {} service!\n",
+                        service.name,
+                        service.risk.label()
+                    )),
                     SetAttribute(Attribute::Reset),
                     ResetColor
-                ).map_err(|e| PortrError::IoError(e.to_string()))?;
+                )
+                .map_err(|e| PortrError::IoError(e.to_string()))?;
             }
         }
 
@@ -406,12 +442,17 @@ impl InteractiveApp {
                 port_info.pid, port_info.process_name, port_info.port
             )),
             ResetColor
-        ).map_err(|e| PortrError::IoError(e.to_string()))?;
-        stdout.flush().map_err(|e| PortrError::IoError(e.to_string()))?;
+        )
+        .map_err(|e| PortrError::IoError(e.to_string()))?;
+        stdout
+            .flush()
+            .map_err(|e| PortrError::IoError(e.to_string()))?;
 
         // Wait for confirmation
         loop {
-            if let Event::Key(key) = event::read().map_err(|e| PortrError::IoError(e.to_string()))? {
+            if let Event::Key(key) =
+                event::read().map_err(|e| PortrError::IoError(e.to_string()))?
+            {
                 match key.code {
                     KeyCode::Char('y') | KeyCode::Char('Y') => {
                         // Kill the process
@@ -441,7 +482,7 @@ impl InteractiveApp {
 
     fn draw(&self, stdout: &mut io::Stdout) -> Result<(), PortrError> {
         let (width, height) = self.term_size;
-        
+
         execute!(stdout, Clear(ClearType::All), MoveTo(0, 0))
             .map_err(|e| PortrError::IoError(e.to_string()))?;
 
@@ -452,7 +493,7 @@ impl InteractiveApp {
         let header_height = 4;
         let footer_height = 3;
         let list_height = (height as usize).saturating_sub(header_height + footer_height);
-        
+
         // Calculate scroll offset
         let scroll_offset = if self.selected >= list_height {
             self.selected - list_height + 1
@@ -471,10 +512,12 @@ impl InteractiveApp {
             )),
             Print("─".repeat(width as usize)),
             ResetColor
-        ).map_err(|e| PortrError::IoError(e.to_string()))?;
+        )
+        .map_err(|e| PortrError::IoError(e.to_string()))?;
 
         // Draw port list
-        for (display_idx, &port_idx) in self.filtered_indices
+        for (display_idx, &port_idx) in self
+            .filtered_indices
             .iter()
             .skip(scroll_offset)
             .take(list_height)
@@ -483,9 +526,8 @@ impl InteractiveApp {
             let port = &self.ports[port_idx];
             let is_selected = scroll_offset + display_idx == self.selected;
             let y = header_height as u16 + 1 + display_idx as u16;
-            
-            execute!(stdout, MoveTo(0, y))
-                .map_err(|e| PortrError::IoError(e.to_string()))?;
+
+            execute!(stdout, MoveTo(0, y)).map_err(|e| PortrError::IoError(e.to_string()))?;
 
             // Selection indicator and background
             if is_selected {
@@ -493,12 +535,13 @@ impl InteractiveApp {
                     stdout,
                     SetForegroundColor(Color::Black),
                     SetAttribute(Attribute::Reverse),
-                ).map_err(|e| PortrError::IoError(e.to_string()))?;
+                )
+                .map_err(|e| PortrError::IoError(e.to_string()))?;
             }
 
             // Service name
             let service_name = services::short_name(port.port).unwrap_or("-");
-            
+
             // Risk indicator
             let risk_indicator = services::lookup(port.port)
                 .map(|s| match s.risk {
@@ -520,7 +563,7 @@ impl InteractiveApp {
                 port.memory_mb,
                 truncate(&port.state, 12)
             );
-            
+
             // Color based on protocol and risk
             if !is_selected {
                 let color = if services::lookup(port.port)
@@ -542,7 +585,8 @@ impl InteractiveApp {
                 Print(truncate(&line, width as usize)),
                 SetAttribute(Attribute::Reset),
                 ResetColor
-            ).map_err(|e| PortrError::IoError(e.to_string()))?;
+            )
+            .map_err(|e| PortrError::IoError(e.to_string()))?;
         }
 
         // Draw footer
@@ -553,13 +597,15 @@ impl InteractiveApp {
             self.draw_help_overlay(stdout)?;
         }
 
-        stdout.flush().map_err(|e| PortrError::IoError(e.to_string()))?;
+        stdout
+            .flush()
+            .map_err(|e| PortrError::IoError(e.to_string()))?;
         Ok(())
     }
 
     fn draw_header(&self, stdout: &mut io::Stdout) -> Result<(), PortrError> {
         let (_width, _) = self.term_size;
-        
+
         // Compact header
         execute!(
             stdout,
@@ -581,7 +627,8 @@ impl InteractiveApp {
             SetForegroundColor(Color::Cyan),
             Print(" ██████╔╝╚██████╔╝██║  ██║   ██║   ██║  ██║ "),
             ResetColor
-        ).map_err(|e| PortrError::IoError(e.to_string()))?;
+        )
+        .map_err(|e| PortrError::IoError(e.to_string()))?;
 
         // Filter indicator
         if !self.filter.is_empty() {
@@ -590,7 +637,8 @@ impl InteractiveApp {
                 SetForegroundColor(Color::Yellow),
                 Print(format!("  Filter: {}", self.filter)),
                 ResetColor
-            ).map_err(|e| PortrError::IoError(e.to_string()))?;
+            )
+            .map_err(|e| PortrError::IoError(e.to_string()))?;
         }
 
         execute!(stdout, Print("\n")).map_err(|e| PortrError::IoError(e.to_string()))?;
@@ -602,16 +650,16 @@ impl InteractiveApp {
         let (width, height) = self.term_size;
 
         // Status line
-        execute!(stdout, MoveTo(0, height - 3))
-            .map_err(|e| PortrError::IoError(e.to_string()))?;
-        
+        execute!(stdout, MoveTo(0, height - 3)).map_err(|e| PortrError::IoError(e.to_string()))?;
+
         if let Some(ref status) = self.status {
             execute!(
                 stdout,
                 SetForegroundColor(Color::Green),
                 Print(format!(" ✓ {}", status)),
                 ResetColor
-            ).map_err(|e| PortrError::IoError(e.to_string()))?;
+            )
+            .map_err(|e| PortrError::IoError(e.to_string()))?;
         }
 
         // Separator
@@ -621,7 +669,8 @@ impl InteractiveApp {
             SetForegroundColor(Color::DarkGrey),
             Print("─".repeat(width as usize)),
             ResetColor
-        ).map_err(|e| PortrError::IoError(e.to_string()))?;
+        )
+        .map_err(|e| PortrError::IoError(e.to_string()))?;
 
         // Help bar
         execute!(
@@ -658,7 +707,8 @@ impl InteractiveApp {
             SetForegroundColor(Color::DarkGrey),
             Print(" Quit"),
             ResetColor
-        ).map_err(|e| PortrError::IoError(e.to_string()))?;
+        )
+        .map_err(|e| PortrError::IoError(e.to_string()))?;
 
         Ok(())
     }
@@ -693,7 +743,7 @@ impl InteractiveApp {
         for y in 0..box_height {
             execute!(stdout, MoveTo(start_x, start_y + y))
                 .map_err(|e| PortrError::IoError(e.to_string()))?;
-            
+
             if y == 0 {
                 execute!(
                     stdout,
@@ -702,7 +752,8 @@ impl InteractiveApp {
                     Print("─".repeat((box_width - 2) as usize)),
                     Print("╮"),
                     ResetColor
-                ).map_err(|e| PortrError::IoError(e.to_string()))?;
+                )
+                .map_err(|e| PortrError::IoError(e.to_string()))?;
             } else if y == box_height - 1 {
                 execute!(
                     stdout,
@@ -711,7 +762,8 @@ impl InteractiveApp {
                     Print("─".repeat((box_width - 2) as usize)),
                     Print("╯"),
                     ResetColor
-                ).map_err(|e| PortrError::IoError(e.to_string()))?;
+                )
+                .map_err(|e| PortrError::IoError(e.to_string()))?;
             } else if y == 1 {
                 let title = " Keyboard Shortcuts ";
                 let padding = ((box_width - 2) as usize - title.len()) / 2;
@@ -728,7 +780,8 @@ impl InteractiveApp {
                     SetForegroundColor(Color::Cyan),
                     Print("│"),
                     ResetColor
-                ).map_err(|e| PortrError::IoError(e.to_string()))?;
+                )
+                .map_err(|e| PortrError::IoError(e.to_string()))?;
             } else {
                 let idx = (y - 2) as usize;
                 let (key, desc) = if idx < help_items.len() {
@@ -736,7 +789,7 @@ impl InteractiveApp {
                 } else {
                     ("", "")
                 };
-                
+
                 let content = if desc.is_empty() {
                     if key.is_empty() {
                         " ".repeat((box_width - 2) as usize)
@@ -744,19 +797,29 @@ impl InteractiveApp {
                         format!("{:<width$}", key, width = (box_width - 2) as usize)
                     }
                 } else {
-                    format!("{:<15} {:<width$}", key, desc, width = (box_width - 17) as usize)
+                    format!(
+                        "{:<15} {:<width$}",
+                        key,
+                        desc,
+                        width = (box_width - 17) as usize
+                    )
                 };
 
                 execute!(
                     stdout,
                     SetForegroundColor(Color::Cyan),
                     Print("│"),
-                    SetForegroundColor(if desc.is_empty() { Color::White } else { Color::Yellow }),
+                    SetForegroundColor(if desc.is_empty() {
+                        Color::White
+                    } else {
+                        Color::Yellow
+                    }),
                     Print(&content[..content.len().min((box_width - 2) as usize)]),
                     SetForegroundColor(Color::Cyan),
                     Print("│"),
                     ResetColor
-                ).map_err(|e| PortrError::IoError(e.to_string()))?;
+                )
+                .map_err(|e| PortrError::IoError(e.to_string()))?;
             }
         }
 

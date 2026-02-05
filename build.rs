@@ -172,7 +172,10 @@ fn main() {
     let man_path = man_dir.join("portr.1");
     if let Ok(mut file) = fs::File::create(&man_path) {
         let _ = man.render(&mut file);
-        println!("cargo:warning=Man page generated at: {}", man_path.display());
+        println!(
+            "cargo:warning=Man page generated at: {}",
+            man_path.display()
+        );
     }
 
     // Also generate man pages for subcommands

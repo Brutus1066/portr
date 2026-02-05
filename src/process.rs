@@ -30,12 +30,10 @@ fn kill_unix(pid: u32, force: bool) -> Result<(), PortrError> {
     let pid = Pid::from_raw(pid as i32);
 
     kill(pid, signal).map_err(|e| match e {
-        nix::errno::Errno::EPERM => {
-            PortrError::PermissionDenied(format!(
-                "Cannot kill process {}. Try running with sudo.",
-                pid
-            ))
-        }
+        nix::errno::Errno::EPERM => PortrError::PermissionDenied(format!(
+            "Cannot kill process {}. Try running with sudo.",
+            pid
+        )),
         nix::errno::Errno::ESRCH => PortrError::ProcessNotFound(pid.as_raw() as u32),
         _ => PortrError::KillError(pid.as_raw() as u32, e.to_string()),
     })
@@ -101,6 +99,8 @@ pub fn needs_elevation() -> bool {
     {
         // Check if running as administrator
         // Simplified check - in production you'd use Windows API
-        std::env::var("USERNAME").map(|u| u.to_lowercase() == "administrator").unwrap_or(false)
+        std::env::var("USERNAME")
+            .map(|u| u.to_lowercase() == "administrator")
+            .unwrap_or(false)
     }
 }

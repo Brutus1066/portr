@@ -2,10 +2,10 @@
 //!
 //! Manages ports, selection, filters, and all UI state.
 
+use crate::export;
 use crate::port::{self, PortInfo};
 use crate::process;
 use crate::services;
-use crate::export;
 
 /// Filter mode for port display
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -40,7 +40,7 @@ impl ExportFormat {
             ExportFormat::Markdown => "md",
         }
     }
-    
+
     pub fn name(&self) -> &'static str {
         match self {
             ExportFormat::Json => "JSON",
@@ -48,7 +48,7 @@ impl ExportFormat {
             ExportFormat::Markdown => "Markdown",
         }
     }
-    
+
     pub fn cycle(&self) -> Self {
         match self {
             ExportFormat::Json => ExportFormat::Csv,
@@ -177,7 +177,7 @@ impl App {
                 // Docker filter - check if process is Docker-related
                 let docker_match = if self.docker_only {
                     let name = p.process_name.to_lowercase();
-                    name.contains("docker") 
+                    name.contains("docker")
                         || name.contains("containerd")
                         || name.contains("com.docker")
                         || name == "vpnkit.exe"
@@ -203,7 +203,9 @@ impl App {
             SortMode::Port => filtered.sort_by_key(|p| p.port),
             SortMode::Process => filtered.sort_by(|a, b| a.process_name.cmp(&b.process_name)),
             SortMode::Memory => filtered.sort_by(|a, b| {
-                b.memory_mb.partial_cmp(&a.memory_mb).unwrap_or(std::cmp::Ordering::Equal)
+                b.memory_mb
+                    .partial_cmp(&a.memory_mb)
+                    .unwrap_or(std::cmp::Ordering::Equal)
             }),
             SortMode::Pid => filtered.sort_by_key(|p| p.pid),
         }
@@ -227,7 +229,11 @@ impl App {
         } else if self.ports.is_empty() {
             self.set_status(&format!("No matches for '{}'", self.filter_text));
         } else {
-            self.set_status(&format!("Found {} for '{}'", self.ports.len(), self.filter_text));
+            self.set_status(&format!(
+                "Found {} for '{}'",
+                self.ports.len(),
+                self.filter_text
+            ));
         }
     }
 
@@ -376,7 +382,7 @@ impl App {
     pub fn menu_select(&mut self) {
         let selected = self.menu_selected;
         self.show_menu = false;
-        
+
         match selected {
             0 => {
                 // Dashboard - full view with details
@@ -533,7 +539,7 @@ impl App {
     /// Export current ports to file
     pub fn do_export(&mut self) {
         use std::fs;
-        
+
         if self.ports.is_empty() {
             self.set_status("No ports to export");
             self.show_export = false;
@@ -542,7 +548,11 @@ impl App {
 
         // Generate filename with timestamp
         let timestamp = chrono::Local::now().format("%Y%m%d_%H%M%S");
-        let filename = format!("portr_export_{}.{}", timestamp, self.export_format.extension());
+        let filename = format!(
+            "portr_export_{}.{}",
+            timestamp,
+            self.export_format.extension()
+        );
 
         let content = match self.export_format {
             ExportFormat::Json => {
@@ -555,8 +565,8 @@ impl App {
         match fs::write(&filename, &content) {
             Ok(_) => {
                 self.set_status(&format!(
-                    "✓ Exported {} ports to {}", 
-                    self.ports.len(), 
+                    "✓ Exported {} ports to {}",
+                    self.ports.len(),
                     filename
                 ));
             }
